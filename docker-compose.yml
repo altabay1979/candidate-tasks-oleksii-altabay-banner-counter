@@ -1,0 +1,58 @@
+version: "3.0"
+
+services:
+    db:
+        image: mysql:8.0
+        container_name: oa-db
+        command: --default-authentication-plugin=mysql_native_password
+        restart: always
+        volumes:
+            - "./docker/db/init:/docker-entrypoint-initdb.d"
+            - "./docker/db/data:/var/lib/mysql"
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: banners
+        networks:
+            - oanetwork
+
+    adminer:
+        image: adminer
+        container_name: oa-adminer
+        restart: always
+        ports:
+            - "8080:8080"
+        networks:
+            - oanetwork
+        depends_on:
+            - db
+
+    php:
+        image: oa/php
+        build:
+            context: docker/php
+        container_name: oa-php
+        volumes:
+            - ./code/:/var/www/html/
+        networks:
+            - oanetwork
+        depends_on:
+            - db
+
+    nginx:
+        image: oa/nginx
+        build:
+            context: docker/nginx
+        container_name: oa-nginx
+        ports:
+            - "80:80"
+        volumes:
+            - ./code/:/var/www/html/
+        networks:
+            - oanetwork
+        depends_on:
+            - php
+
+networks:
+    oanetwork:
+        name: oanetwork
+        driver: bridge
